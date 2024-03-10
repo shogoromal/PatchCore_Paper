@@ -11,8 +11,10 @@ class gayoshi_danmen():
   def __init__(self, folder, input_list):
 
     self.folder = folder
+    #canny法というエッジ検出のパラメータの初期値
     self.canny_para_chigiri = (250,270)
     self.canny_para_hasami = (250,270)
+    self.canny_para_both = (250,270)
 
     #画像全体を保存する
     chigiri_list = self.mk_pic_list(input_list[0])
@@ -52,9 +54,9 @@ class gayoshi_danmen():
   def choice_pic(self, image_type, num):
     return self.image_dict[image_type][num]
 
-  #canny_para=(230,270)が最初に試したときはいい感じだった
-
-  def canny_edge_check(self,image_type, num=0, canny_para=(230,270), range=20):
+  #canny法によるエッジ検出
+  #canny_para=(230,270)が最初に試したときはいい感じだったので初期値としている
+  def canny_edge_check(self,image_type, num, canny_para, range=20):
 
     original = self.choice_pic(image_type, num)
     th_1 = canny_para[0]
@@ -75,19 +77,46 @@ class gayoshi_danmen():
                         ]
 
     edge_pic_list = []
+    canny_para_list = []
 
     for i in check_canny_list:
       edge_pic_temp = cv2.Canny(img_gray, i[0], i[1])
       edge_pic_list.append(edge_pic_temp)
+      canny_para_list.append(i)
 
-    print("真ん中が設定した閾値の画像", canny_para)
-    self.show_pics(edge_pic_list, 3, 3, 0, "x→threshold1, y→threshold2", (24,32))
+    self.show_pics(edge_pic_list, 3, 3, 0, "x→threshold1, y→threshold2", (24,32), canny_para_list)
 
+    #表示した画像でのcannyパラメータを代入する
     if image_type == "chigiri":
       self.canny_para_chigiri = canny_para
     elif image_type == "hasami":
       self.canny_para_hasami = canny_para
+    else:
+      self.canny_para_both = canny_para
+      
+  #canny法の時に画像を表示させるための関数
+  def show_pics(self, data, row ,col, start_num, title, fig_size, canny_para=(0,0)):
 
+    fig, ax = plt.subplots(nrows=row, ncols=col,figsize=fig_size)
+
+    num_data = row*col
+    fig.suptitle(title , fontsize=24, color='black')
+    fig.subplots_adjust(hspace=0.15, wspace=0.01)
+
+    #skip_data = [data[(i+1)*200] for i in range(num_data)]
+
+    for i, img in enumerate(data[start_num:start_num+num_data]):
+
+      _r= i//col
+      _c= i%col
+      #ax[_r,_c].set_title(skip_data[i], fontsize=16, color='white')
+      ax[_r,_c].axes.xaxis.set_visible(False) # X軸を非表示に
+      ax[_r,_c].axes.yaxis.set_visible(False) # Y軸を非表示に
+      ax[_r,_c].imshow(img, cmap="gray") # 画像を表示
+      # タイトルとしてパラメータを表示（画像の上部）
+      if not canny_para==(0,0):
+        title_text = f"Canny Params: {canny_para[i]}"
+        ax[_r, _c].set_title(title_text, fontsize=30, color='green', pad=3)
 
   def search_danmen(self, size):
 
@@ -113,7 +142,7 @@ class gayoshi_danmen():
           elif im_type == "hasami":
             canny_para = self.canny_para_hasami
           else:
-            canny_para = min(self.canny_para_chigiri, self.canny_para_hasami)
+            canny_para = self.canny_para_both
 
           img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
           img_edge = cv2.Canny(img_gray, canny_para[0], canny_para[1])
@@ -131,18 +160,16 @@ class gayoshi_danmen():
               img_part = img[col*size[0]:(col+1)*size[0],
                             row*size[1]:(row+1)*size[1]]
 
-              #上下、または左右に分割して、両方にエッジが含まれていたら断面
-              if 255 in img_part_edge[5:-5, 5:-5]:
-              #if ((255 in img_part_edge[3:-3,3:-3]) and (255 in img_part_edge[:half_size[0],:]) and (255 in img_part_edge[half_size[0]:,:])):
+              # 画像の端5ピクセル内に255が存在するかどうかをチェック
+              top_edge = img_part_edge[:5, :]  # 上端
+              bottom_edge = img_part_edge[-5:, :]  # 下端
+              left_edge = img_part_edge[:, :5]  # 左端
+              right_edge = img_part_edge[:, -5:]  # 右端
+
+              # 上下左右の端のいずれかに255が含まれているか
+              if (255 in top_edge) and (255 in bottom_edge) or (255 in left_edge) and (255 in right_edge):
                 danmen_list_original.append(img_part)
                 danmen_list_gray.append(img_part_gray)
-                #danmen_list_gray.append(shift_img_part_gray)
-              """
-              elif ((255 in img_part_edge[3:-3,3:-3]) and (255 in img_part_edge[:,:half_size[1]]) and (255 in img_part_edge[:,half_size[1]:])):
-                danmen_list_original.append(img_part)
-                danmen_list_gray.append(img_part_gray)
-                #danmen_list_gray.append(shift_img_part_gray)
-              """
 
         count += 1
         print(im_type, count, "→完了")
@@ -155,26 +182,6 @@ class gayoshi_danmen():
     self.danmen_dict = [danmen_dict_original, danmen_dict_gray]
 
     return danmen_dict_original, danmen_dict_gray
-
-
-  def show_pics(self, data, row ,col, start_num, title, fig_size):
-
-    fig, ax = plt.subplots(nrows=row, ncols=col,figsize=fig_size)
-
-    num_data = row*col
-    fig.suptitle(title , fontsize=24, color='black')
-    fig.subplots_adjust(hspace=0.01, wspace=0.01)
-
-    #skip_data = [data[(i+1)*200] for i in range(num_data)]
-
-    for i, img in enumerate(data[start_num:start_num+num_data]):
-
-      _r= i//col
-      _c= i%col
-      #ax[_r,_c].set_title(skip_data[i], fontsize=16, color='white')
-      ax[_r,_c].axes.xaxis.set_visible(False) # X軸を非表示に
-      ax[_r,_c].axes.yaxis.set_visible(False) # Y軸を非表示に
-      ax[_r,_c].imshow(img, cmap="gray") # 画像を表示
 
   #画像のリストをランダムに分ける関数を作成
 

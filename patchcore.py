@@ -19,7 +19,7 @@ class PatchCore(pl.LightningModule):
   def __init__(self, hparams):
 
     super(PatchCore, self).__init__()
-    self.save_hyperparameters()
+    self.save_hyperparameters(hparams)
 
     # PatchCore の別のメソッドで定義する
     self.init_features()
@@ -60,11 +60,16 @@ class PatchCore(pl.LightningModule):
     self.inv_normalize = transforms.Normalize(mean=[-0.485/0.229, -0.456/0.224, -0.406/0.255], std=[1/0.229, 1/0.224, 1/0.255])
 
   def init_results_list(self):
-    self.gt_list_px_lvl = []
-    self.pred_list_px_lvl = []
-    self.gt_list_img_lvl = []
-    self.pred_list_img_lvl = []
-    self.img_path_list = []
+    #self.gt_list_px_lvl = []
+    #self.pred_list_px_lvl = []
+    #self.gt_list_img_lvl = []
+    #self.pred_list_img_lvl = []
+    #self.img_path_list = []
+    
+    #testにおける推論の結果は以下のリストに返す
+    self.test_result_annomaly_map = []
+    self.input_img = []
+    self.annomaly_score = []
 
   def init_features(self):
     self.features = []
@@ -74,35 +79,39 @@ class PatchCore(pl.LightningModule):
     _ = self.model(x_t)
     return self.features
 
-  def save_anomaly_map(self, anomaly_map, input_img, file_name, x_type):
+  '''
+  def save_anomaly_map(self, anomaly_map, input_img):
     if anomaly_map.shape != input_img.shape:
       anomaly_map = cv2.resize(anomaly_map, (input_img.shape[0], input_img.shape[1]))
     anomaly_map_norm = min_max_norm(anomaly_map)
     anomaly_map_norm_hm = cvt2heatmap(anomaly_map_norm*255)
+
 
     # anomaly map on image
     heatmap = cvt2heatmap(anomaly_map_norm*255)
     hm_on_img = heatmap_on_image(heatmap, input_img)
 
     # save images
-    cv2.imwrite(os.path.join(self.sample_path, f'{x_type}_{file_name}.jpg'), input_img)
-    cv2.imwrite(os.path.join(self.sample_path, f'{x_type}_{file_name}_amap.jpg'), anomaly_map_norm_hm)
-    cv2.imwrite(os.path.join(self.sample_path, f'{x_type}_{file_name}_amap_on_img.jpg'), hm_on_img)
+    #cv2.imwrite(os.path.join(self.sample_path, f'{x_type}_{file_name}.jpg'), input_img)
+    #cv2.imwrite(os.path.join(self.sample_path, f'{x_type}_{file_name}_amap.jpg'), anomaly_map_norm_hm)
+    #cv2.imwrite(os.path.join(self.sample_path, f'{x_type}_{file_name}_amap_on_img.jpg'), hm_on_img)
     #cv2.imwrite(os.path.join(self.sample_path, f'{x_type}_{file_name}_gt.jpg'), gt_img)
-
+    
+    return hm_on_img
+  '''
 
   def train_dataloader(self):
-    image_datasets = MyDataset(img_set = self.boundary_dict_original["hasami"],
+    train_datasets = MyDataset(img_set = self.hparams.gayoshi_train_img_list,
                                transform = self.data_transforms
                               )
-    train_loader = DataLoader(image_datasets,
-                              batch_size = self.batch_size,
+    train_loader = DataLoader(train_datasets,
+                              batch_size = self.hparams.batch_size,
                               shuffle = True,
                                num_workers = 0)
     return train_loader
 
   def test_dataloader(self):
-    test_datasets = MyDataset(img_set = self.boundary_dict_original["both"],
+    test_datasets = MyDataset(img_set=self.hparams.croped_img_list,
                               transform = self.gt_transforms
                                )
     test_loader = DataLoader(test_datasets,
@@ -120,8 +129,8 @@ class PatchCore(pl.LightningModule):
     self.embedding_list = []
 
   def on_test_start(self):
-    self.embedding_dir_path, self.sample_path, self.source_code_save_path = prep_dirs(self.project_root_path)
-    self.index = faiss.read_index(os.path.join(self.embedding_dir_path,'index.faiss'))
+    #self.embedding_dir_path, self.sample_path, self.source_code_save_path = prep_dirs(self.project_root_path)
+    self.index = faiss.read_index(os.path.join('pre_index.faiss'))#事前学習済みのファイルを使う
     if torch.cuda.is_available():
         res = faiss.StandardGpuResources()
         self.index = faiss.index_cpu_to_gpu(res, 0 ,self.index)
@@ -142,9 +151,6 @@ class PatchCore(pl.LightningModule):
   def test_step(self, batch, batch_idx): # Nearest Neighbour Search
     #filenameが一意になるように工夫が必要
     x  = batch
-    label = "chigiri"
-    x_type = "x_type"
-    # extract embedding
     features = self(x)
     embeddings = []
     for feature in features:
@@ -152,21 +158,25 @@ class PatchCore(pl.LightningModule):
         embeddings.append(m(feature))
     embedding_ = embedding_concat(embeddings[0], embeddings[1])
     embedding_test = np.array(reshape_embedding(np.array(embedding_)))
-    score_patches, _ = self.index.search(embedding_test , k=self.n_neighbors)
+    score_patches, _ = self.index.search(embedding_test , k=self.hparams.n_neighbors)
+    #print('デバッグ', score_patches.shape, score_patches)
     anomaly_map = score_patches[:,0].reshape((32,32))
     N_b = score_patches[np.argmax(score_patches[:,0])]
     w = (1 - (np.max(np.exp(N_b))/np.sum(np.exp(N_b))))
     score = w*max(score_patches[:,0]) # Image-level score
     #gt_np = gt.cpu().numpy()[0,0].astype(int)
-    anomaly_map_resized = cv2.resize(anomaly_map, (self.input_size, self.input_size))
+    anomaly_map_resized = cv2.resize(anomaly_map, (self.hparams.input_size, self.hparams.input_size))
     anomaly_map_resized_blur = gaussian_filter(anomaly_map_resized, sigma=4)
     #self.gt_list_px_lvl.extend(gt_np.ravel())
-    self.pred_list_px_lvl.extend(anomaly_map_resized_blur.ravel())
+    #self.pred_list_px_lvl.extend(anomaly_map_resized_blur.ravel())
     #self.gt_list_img_lvl.append(label.cpu().numpy()[0])
-    self.pred_list_img_lvl.append(score)
+    #self.pred_list_img_lvl.append(score)
     #self.img_path_list.extend(self.testcount)
     # save images
     x = self.inv_normalize(x)
-    input_x = cv2.cvtColor(x.permute(0,2,3,1).cpu().numpy()[0]*255, cv2.COLOR_BGR2RGB)
-    self.save_anomaly_map(anomaly_map_resized_blur, input_x, self.testcount, x_type)
-    self.testcount += 1
+    input_img = cv2.cvtColor(x.permute(0,2,3,1).cpu().numpy()[0]*255, cv2.COLOR_BGR2RGB)
+    #self.save_anomaly_map(anomaly_map_resized_blur, input_img)
+    #self.testcount += 1
+    self.test_result_annomaly_map.append(anomaly_map_resized_blur)
+    self.input_img.append(input_img)
+    self.annomaly_score.append(score)

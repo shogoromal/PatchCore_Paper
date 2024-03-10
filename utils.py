@@ -33,16 +33,15 @@ def reshape_embedding(embedding):
 
 def prep_dirs(root):
     # make embeddings dir
-    embeddings_path = os.path.join('/content/drive/MyDrive/Colab Notebooks/PatchCore/gayoshi', 'embeddings', 'temp_embedding')
+    embeddings_path = os.path.join(root, 'tmp', 'temp_embedding')
     os.makedirs(embeddings_path, exist_ok=True)
     # make sample dir
-    sample_path = os.path.join(root, 'sample')
-    os.makedirs(sample_path, exist_ok=True)
+    #sample_path = os.path.join(root, 'sample')
+    #os.makedirs(sample_path, exist_ok=True)
     # make source code record dir & copy
-    source_code_save_path = os.path.join(root, 'src')
-    os.makedirs(source_code_save_path, exist_ok=True)
-
-    return embeddings_path, sample_path, source_code_save_path
+    #source_code_save_path = os.path.join(root, 'src')
+    #os.makedirs(source_code_save_path, exist_ok=True)
+    return embeddings_path #, sample_path, source_code_save_path
 
 def cvt2heatmap(gray):
     heatmap = cv2.applyColorMap(np.uint8(gray), cv2.COLORMAP_JET)
@@ -51,6 +50,7 @@ def cvt2heatmap(gray):
 def heatmap_on_image(heatmap, image):
     if heatmap.shape != image.shape:
         heatmap = cv2.resize(heatmap, (image.shape[0], image.shape[1]))
+    heatmap = heatmap[:,:,[2,1,0]]#表示の関係でRGBを入れ替える
     out = np.float32(heatmap)/255 + np.float32(image)/255
     out = out / np.max(out)
     return np.uint8(255 * out)
