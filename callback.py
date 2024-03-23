@@ -30,4 +30,4 @@ class MyCallback(Callback):
                       os.path.join(pl_module.embedding_dir_path, 'index.faiss'))
   
   def on_test_epoch_end(self, trainer, pl_module):
-    pl_module.testcount +=1
+    None

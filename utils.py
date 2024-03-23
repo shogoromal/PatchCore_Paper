@@ -35,13 +35,6 @@ def prep_dirs(root):
     # make embeddings dir
     embeddings_path = os.path.join(root, 'tmp', 'temp_embedding')
     os.makedirs(embeddings_path, exist_ok=True)
-    # make sample dir
-    #sample_path = os.path.join(root, 'sample')
-    #os.makedirs(sample_path, exist_ok=True)
-    # make source code record dir & copy
-    #source_code_save_path = os.path.join(root, 'src')
-    #os.makedirs(source_code_save_path, exist_ok=True)
-    return embeddings_path #, sample_path, source_code_save_path
 
 def cvt2heatmap(gray):
     heatmap = cv2.applyColorMap(np.uint8(gray), cv2.COLORMAP_JET)
