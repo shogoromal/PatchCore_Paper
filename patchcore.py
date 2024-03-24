@@ -8,7 +8,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import faiss
-from utils import min_max_norm, cvt2heatmap, embedding_concat, reshape_embedding, prep_dirs, heatmap_on_image
+from utils import embedding_concat, reshape_embedding, prep_dirs
 from dataset import MyDataset
 
 mean_train = [0.485, 0.456, 0.406]
@@ -24,8 +24,6 @@ class PatchCore(pl.LightningModule):
     # PatchCore の別のメソッドで定義する
     self.init_features()
 
-    #何個目のテスト画像かを数えるための変数
-    self.testcount = 0
 
     def hook_t(module, input, output):
       self.features.append(output)
@@ -51,7 +49,7 @@ class PatchCore(pl.LightningModule):
                         transforms.ColorJitter(brightness=0.05,contrast=0.05),
                         transforms.Normalize(mean=mean_train, std=std_train)
                         ])
-    self.gt_transforms = transforms.Compose([
+    self.test_transforms = transforms.Compose([
                         #transforms.Resize((load_size, load_size)),
                         transforms.ToTensor(),
                         #transforms.CenterCrop(input_size)
@@ -63,6 +61,8 @@ class PatchCore(pl.LightningModule):
     self.test_result_annomaly_map = []
     self.input_img = []
     self.annomaly_score = []
+    self.heatmap = []
+    self.max_Nb = 0
 
   def init_features(self):
     self.features = []
@@ -84,7 +84,7 @@ class PatchCore(pl.LightningModule):
 
   def test_dataloader(self):
     test_datasets = MyDataset(img_set=self.hparams.croped_img_list,
-                              transform = self.gt_transforms
+                              transform = self.test_transforms
                                )
     test_loader = DataLoader(test_datasets,
                             batch_size = 1,
@@ -135,6 +135,9 @@ class PatchCore(pl.LightningModule):
     N_b = score_patches[np.argmax(score_patches[:,0])]#最も近い特徴同士の中で最大→画像の中の最も異常な部分のデータバンクからの距離
     w = (1 - (np.max(np.exp(N_b[0]))/np.sum(np.exp(N_b))))
     score = w*N_b[0] # Image-level score
+    #画像表示の際に使うためにN_bの値が最大のものを保存しておく
+    if N_b[0] > self.max_Nb:
+      self.max_Nb = N_b[0]
     anomaly_map_resized = cv2.resize(anomaly_map, (self.hparams.input_size, self.hparams.input_size))
     anomaly_map_resized_blur = gaussian_filter(anomaly_map_resized, sigma=4)
     x = self.inv_normalize(x)

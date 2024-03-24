@@ -48,6 +48,6 @@ def heatmap_on_image(heatmap, image):
     out = out / np.max(out)
     return np.uint8(255 * out)
 
-def min_max_norm(image):
+def min_max_norm(image, global_max):
     a_min, a_max = image.min(), image.max()
-    return (image-a_min)/(a_max - a_min)
+    return (image-a_min)/(global_max - a_min)
