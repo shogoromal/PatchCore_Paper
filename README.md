@@ -2,7 +2,7 @@
 PatchCoreという異常検出の手法を利用して、画用紙の切れ端をが綺麗かどうかを判別するコードを作成しました。
 
 google colab  
-
+https://colab.research.google.com/drive/1xYL8AhVqb1mvxlKeEhdwFMVhZKrz2sCE?usp=sharing
 
 原著論文 :   
 Towards Total Recall in Industrial Anomaly Detection (Jun 2021)  
@@ -48,5 +48,5 @@ https://docs.opencv.org/3.4/da/d22/tutorial_py_canny.html
 
 canny法によるエッジ検出を行う。閾値パラメータを２つ(min, max)を設定する。  
 これら２つのパラメーターが大きいほど、コントラストがより強い部分のみエッジとして検出される。 
-  
+
 <img src="./readme_image/canny_image.png" alt="attach:cat" title="attach:cat" width="600" height="500">
