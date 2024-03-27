@@ -33,8 +33,9 @@ def reshape_embedding(embedding):
 
 def prep_dirs(root):
     # make embeddings dir
-    embeddings_path = os.path.join(root, 'tmp', 'temp_embedding')
+    embeddings_path = os.path.join(root, 'tmp')
     os.makedirs(embeddings_path, exist_ok=True)
+    return embeddings_path
 
 def cvt2heatmap(gray):
     heatmap = cv2.applyColorMap(np.uint8(gray), cv2.COLORMAP_JET)

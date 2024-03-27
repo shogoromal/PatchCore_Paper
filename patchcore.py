@@ -23,7 +23,7 @@ class PatchCore(pl.LightningModule):
 
     # PatchCore の別のメソッドで定義する
     self.init_features()
-
+    self.max_Nb = 0
 
     def hook_t(module, input, output):
       self.features.append(output)
@@ -62,7 +62,6 @@ class PatchCore(pl.LightningModule):
     self.input_img = []
     self.annomaly_score = []
     self.heatmap = []
-    self.max_Nb = 0
 
   def init_features(self):
     self.features = []
@@ -97,12 +96,12 @@ class PatchCore(pl.LightningModule):
 
   def on_train_start(self):
     self.model.eval()
-    self.embedding_dir_path, self.sample_path, self.source_code_save_path = prep_dirs(self.project_root_path)#(self.logger.log_dir)
+    self.embedding_dir_path = prep_dirs(self.hparams.project_root_path)#(self.logger.log_dir)
     self.embedding_list = []
 
   def on_test_start(self):
-    #self.embedding_dir_path, self.sample_path, self.source_code_save_path = prep_dirs(self.project_root_path)
     self.index = faiss.read_index(os.path.join('pre_index.faiss'))#事前学習済みのファイルを使う
+    #self.index = faiss.read_index(os.path.join('tmp', 'index.faiss'))
     if torch.cuda.is_available():
         res = faiss.StandardGpuResources()
         self.index = faiss.index_cpu_to_gpu(res, 0 ,self.index)

@@ -12,9 +12,9 @@ class gayoshi_danmen():
 
     self.folder = folder
     #canny法というエッジ検出のパラメータの初期値
-    self.canny_para_chigiri = (250,270)
-    self.canny_para_hasami = (250,270)
-    self.canny_para_both = (250,270)
+    self.canny_para_chigiri = (250,280)
+    self.canny_para_hasami = (150,480)
+    self.canny_para_both = (250,280)
 
     #画像全体を保存する
     chigiri_list = self.mk_pic_list(input_list[0])

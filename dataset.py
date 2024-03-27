@@ -13,5 +13,4 @@ class MyDataset(Dataset):
     img = self.img_set[idx]
     img = Image.fromarray(img)
     img = self.transform(img)
-
     return img

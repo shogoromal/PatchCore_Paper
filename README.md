@@ -13,11 +13,7 @@ https://paperswithcode.com/sota/anomaly-detection-on-mvtec-ad
 
 参考にしたコード:  
 https://github.com/hcw-00/PatchCore_anomaly_detection/tree/main  
-(さらに、上記コードの中で引用されていたコード)  
-kcenter algorithm :  
-https://github.com/google/active-learning  
-embedding concat function :  
-https://github.com/xiahaifeng1995/PaDiM-Anomaly-Detection-Localization-master
+※上述のコードはApache License 2.0の下で公開されています。したがって、ライセンスの条件に従う限り、改変および再配布が可能です。
 
 ### 以下、改変した点について
 - google colabでの動作を前提として、引数の渡し方を変更。
