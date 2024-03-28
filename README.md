@@ -2,7 +2,7 @@
 PatchCoreという異常検出の手法を利用して、画用紙の切れ端をが綺麗かどうかを判別するコードを作成しました。
 
 google colab  
-https://colab.research.google.com/drive/1xYL8AhVqb1mvxlKeEhdwFMVhZKrz2sCE?usp=sharing
+https://colab.research.google.com/drive/1tJrRlG_kFpRX_rMy3uLvzaROF4OAiz_D?usp=sharing
 
 原著論文 :   
 Towards Total Recall in Industrial Anomaly Detection (Jun 2021)  
